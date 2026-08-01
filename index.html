@@ -2,12 +2,8 @@
 <html lang="ht">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0D0D14">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PRISM — Music Video Player</title>
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUFJJU00gUGxheWVyIiwic2hvcnRfbmFtZSI6IlBSSVNNIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwRDBEMTQiLCJ0aGVtZV9jb2xvciI6IiMwRDBEMTQifQ==">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -30,8 +26,6 @@
     overflow: hidden; height: 100%; max-width: 100vw;
     background: var(--abyss); color: var(--white);
     font-family: 'Inter', sans-serif;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
   }
 
   /* ── AMBIENT BACKGROUND ── */
@@ -49,11 +43,15 @@
 
   /* ── LAYOUT ── */
   #app {
-    position: fixed; inset: 0; z-index: 1;
+    position: fixed; top: 0; bottom: 0; left: 50%; z-index: 1;
+    width: 100%; max-width: 480px;
+    transform: translateX(-50%);
     display: grid;
     grid-template-rows: auto 1fr auto;
     grid-template-columns: 1fr;
     overflow: hidden;
+    background: var(--abyss);
+    box-shadow: 0 0 60px rgba(0,0,0,0.6);
   }
 
   /* ── HEADER ── */
@@ -660,81 +658,6 @@
     .popup-btn { width: 34px; height: 34px; font-size: 0.9rem; }
     #play-btn { width: 44px; height: 44px; font-size: 1.1rem; }
   }
-
-  /* ── ANDROID / MOBILE SPECIFIC ── */
-  @media (pointer: coarse) {
-    .hbtn, .ctrl-btn, .popup-btn, .skip-btn, #play-btn, .pl-item, .lang-item, .item-menu-btn, .share-btn, .bands-reset, .eq-mode-btn, .pl-tab {
-      min-height: 44px;
-      min-width: 44px;
-    }
-    .band-slider::-webkit-slider-thumb {
-      width: 22px; height: 22px;
-    }
-    #vol-slider::-webkit-slider-thumb {
-      width: 26px; height: 26px;
-    }
-    #progress::-webkit-slider-thumb {
-      width: 18px; height: 18px;
-    }
-    .mini-slider::-webkit-slider-thumb {
-      width: 16px; height: 16px;
-    }
-  }
-
-  /* Hide folder button on Android — webkitdirectory not supported */
-  @media (max-width: 768px) {
-    #folder-btn { display: none !important; }
-    .open-btn[data-i18n="btnOpenFolder"] { display: none !important; }
-  }
-
-  /* Better popup positioning on mobile */
-  @media (max-width: 480px) {
-    .popup-panel {
-      width: 94vw !important;
-      left: 3vw !important;
-      transform: none !important;
-      bottom: calc(100% + 6px);
-      border-radius: 14px;
-      padding: 14px;
-    }
-    .header-popup {
-      left: auto !important;
-      right: 8px !important;
-      top: 58px !important;
-      width: min(260px, 88vw) !important;
-    }
-    .ctrl-row {
-      gap: 8px;
-    }
-    .popup-btn {
-      width: 42px; height: 42px;
-    }
-    #play-btn {
-      width: 52px; height: 52px;
-    }
-    .skip-btn {
-      font-size: 1.4rem !important;
-    }
-    .drop-title { font-size: 1.3rem; }
-    .drop-sub { font-size: 0.85rem; }
-    .open-btn {
-      padding: 14px 24px;
-      font-size: 0.95rem;
-    }
-  }
-
-  /* Prevent text selection on controls */
-  #controls, #header, .popup-panel, .item-menu {
-    user-select: none;
-    -webkit-user-select: none;
-  }
-
-  /* Android overscroll behavior */
-  #app {
-    overscroll-behavior: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
 </style>
 </head>
 <body>
@@ -749,7 +672,7 @@
     <div class="logo">PRI<span>S</span>M</div>
     <div class="header-right">
       <button class="hbtn" id="lang-btn" onclick="openLangPopup()" title="Chanje Lang">🌐</button>
-      <button class="hbtn" id="folder-btn" onclick="openFolderMobile()" title="Ouvri Dosye">📁</button>
+      <button class="hbtn" id="folder-btn" onclick="document.getElementById('folder-input').click()" title="Ouvri Dosye">📁</button>
       <button class="hbtn" id="file-btn" onclick="document.getElementById('file-input').click()" title="Ouvri Fichye">🎬</button>
     </div>
   </header>
@@ -757,14 +680,14 @@
   <!-- VIDEO ZONE -->
   <section id="video-zone">
     <div id="video-wrap">
-      <video id="main-video" playsinline webkit-playsinline x5-playsinline preload="metadata"></video>
+      <video id="main-video" playsinline></video>
     </div>
     <div id="drop-overlay">
       <div class="drop-icon">🎵</div>
       <div class="drop-title" data-i18n="dropTitle">PRISM Player</div>
       <div class="drop-sub" style="margin-bottom:20px" data-i18n="dropSub1">Chwazi kijan ou vle ouvri fichye ou yo</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
-        <button class="open-btn" data-i18n="btnOpenFolder" onclick="openFolderMobile()">📁 Ouvri Dosye</button>
+        <button class="open-btn" data-i18n="btnOpenFolder" onclick="document.getElementById('folder-input').click()">📁 Ouvri Dosye</button>
         <button class="open-btn" data-i18n="btnChooseFile" onclick="document.getElementById('file-input').click()">🎬 Chwazi Fichye</button>
       </div>
       <div class="drop-sub" style="margin-top:14px" data-i18n="dropSub2">oswa glise fichye yo isit</div>
@@ -1016,7 +939,6 @@ const I18N = {
     toastChooseFirst: "Chwazi yon fichye an premye",
     toastBandsReset: "Bann remèt nòmal ✓",
     toastNoMedia: "Pa gen fichye mizik/video nan dosye sa",
-    toastNoFolderOnMobile: "Chwazi fichye yo youn pa youn sou Android",
     toastShareOk: "Pataje reyisi! ✓",
     toastLinkCopied: "Lyen kopye! ✓",
     toastCantCopy: "Pa kapab kopye",
@@ -1089,7 +1011,6 @@ const I18N = {
     toastChooseFirst: "Choisissez un fichier d'abord",
     toastBandsReset: "Bandes réinitialisées ✓",
     toastNoMedia: "Aucun fichier audio/vidéo dans ce dossier",
-    toastNoFolderOnMobile: "Sélectionnez les fichiers un par un sur Android",
     toastShareOk: "Partage réussi ! ✓",
     toastLinkCopied: "Lien copié ! ✓",
     toastCantCopy: "Impossible de copier",
@@ -1162,7 +1083,6 @@ const I18N = {
     toastChooseFirst: "Choose a file first",
     toastBandsReset: "Bands reset ✓",
     toastNoMedia: "No audio/video files in this folder",
-    toastNoFolderOnMobile: "Select files one by one on Android",
     toastShareOk: "Shared successfully! ✓",
     toastLinkCopied: "Link copied! ✓",
     toastCantCopy: "Can't copy",
@@ -1235,7 +1155,6 @@ const I18N = {
     toastChooseFirst: "Elige un archivo primero",
     toastBandsReset: "Bandas restablecidas ✓",
     toastNoMedia: "No hay archivos de audio/video en esta carpeta",
-    toastNoFolderOnMobile: "Selecciona archivos uno por uno en Android",
     toastShareOk: "¡Compartido con éxito! ✓",
     toastLinkCopied: "¡Enlace copiado! ✓",
     toastCantCopy: "No se puede copiar",
@@ -1308,7 +1227,6 @@ const I18N = {
     toastChooseFirst: "请先选择一个文件",
     toastBandsReset: "频段已重置 ✓",
     toastNoMedia: "此文件夹中没有音频/视频文件",
-    toastNoFolderOnMobile: "在Android上逐个选择文件",
     toastShareOk: "分享成功！✓",
     toastLinkCopied: "链接已复制！✓",
     toastCantCopy: "无法复制",
@@ -1381,7 +1299,6 @@ const I18N = {
     toastChooseFirst: "पहले एक फ़ाइल चुनें",
     toastBandsReset: "बैंड रीसेट हो गए ✓",
     toastNoMedia: "इस फ़ोल्डर में कोई ऑडियो/वीडियो फ़ाइल नहीं है",
-    toastNoFolderOnMobile: "Android पर एक-एक करके फ़ाइलें चुनें",
     toastShareOk: "सफलतापूर्वक शेयर किया गया! ✓",
     toastLinkCopied: "लिंक कॉपी हो गया! ✓",
     toastCantCopy: "कॉपी नहीं हो सकता",
@@ -1454,7 +1371,6 @@ const I18N = {
     toastChooseFirst: "Сначала выберите файл",
     toastBandsReset: "Полосы сброшены ✓",
     toastNoMedia: "В этой папке нет аудио/видео файлов",
-    toastNoFolderOnMobile: "Выбирайте файлы по одному на Android",
     toastShareOk: "Успешно опубликовано! ✓",
     toastLinkCopied: "Ссылка скопирована! ✓",
     toastCantCopy: "Невозможно скопировать",
@@ -1512,8 +1428,11 @@ function buildLangList() {
 }
 
 function positionLangPopup() {
-  const rect = document.getElementById('header').getBoundingClientRect();
-  document.getElementById('lang-popup').style.top = (rect.bottom + 8) + 'px';
+  const appRect = document.getElementById('app').getBoundingClientRect();
+  const headerRect = document.getElementById('header').getBoundingClientRect();
+  const popup = document.getElementById('lang-popup');
+  popup.style.top = (headerRect.bottom + 8) + 'px';
+  popup.style.right = (window.innerWidth - appRect.right + 16) + 'px';
 }
 
 function openLangPopup() {
@@ -2059,27 +1978,8 @@ function fmt(s) { const m=Math.floor(s/60),ss=Math.floor(s%60); return `${m}:${s
 
 // ── FULLSCREEN (aksesib sèlman ak touch 'F' - pa gen bouton nan header) ──
 function toggleFullscreen() {
-  const el = document.getElementById('app');
-  if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement) {
-    if (el.requestFullscreen) el.requestFullscreen();
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-    else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
-  } else {
-    if (document.exitFullscreen) document.exitFullscreen();
-    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-    else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
-  }
-}
-
-/* Folder fallback for Android — webkitdirectory not supported on mobile */
-function openFolderMobile() {
-  const input = document.getElementById('folder-input');
-  if ('webkitdirectory' in input || 'directory' in input) {
-    input.click();
-  } else {
-    toast(t('toastNoFolderOnMobile'));
-    document.getElementById('file-input').click();
-  }
+  if (!document.fullscreenElement) { document.getElementById('app').requestFullscreen?.(); }
+  else { document.exitFullscreen?.(); }
 }
 
 // ── AMBIENT ──
@@ -2256,34 +2156,6 @@ document.addEventListener('keydown', e => {
   if(e.code==='KeyF') toggleFullscreen();
   if(e.code==='KeyL') cycleLoop();
 });
-
-// ── TOUCH / MOBILE GESTURES ──
-let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
-const videoZone = document.getElementById('video-zone');
-videoZone.addEventListener('touchstart', e => {
-  if (e.touches.length === 1) {
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-    touchStartTime = Date.now();
-  }
-}, { passive: true });
-videoZone.addEventListener('touchend', e => {
-  if (!video.src) return;
-  const dx = e.changedTouches[0].clientX - touchStartX;
-  const dy = e.changedTouches[0].clientY - touchStartY;
-  const dt = Date.now() - touchStartTime;
-  // Swipe horizontal: seek
-  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50 && dt < 400) {
-    skip(dx > 0 ? 10 : -10);
-  }
-  // Double tap: skip 10s
-  if (dt < 250 && Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-    const zoneWidth = videoZone.clientWidth;
-    if (touchStartX < zoneWidth * 0.35) skip(-10);
-    else if (touchStartX > zoneWidth * 0.65) skip(10);
-    else togglePlay();
-  }
-}, { passive: true });
 
 // ── INIT LANGUAGE & LOOP UI ──
 updateLoopUI(false);
