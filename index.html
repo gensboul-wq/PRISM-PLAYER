@@ -930,6 +930,7 @@ const I18N = {
     toastAddedFavorite: "Ajoute nan favori ❤️",
     toastRemovedFavorite: "Retire nan favori",
     toastRemoved: "Retire ✓",
+    toastSkippedDuplicates: "{n} fichye deja nan bibliyotèk la, pa dupliye ✓",
     toastAddedToPlaylist: "Ajoute nan {name} ✓",
     toastRemovedFromPlaylist: "Retire nan {name}",
     toastPlaylistCreated: "Playlist \"{name}\" kreye ✓",
@@ -1002,6 +1003,7 @@ const I18N = {
     toastAddedFavorite: "Ajouté aux favoris ❤️",
     toastRemovedFavorite: "Retiré des favoris",
     toastRemoved: "Retiré ✓",
+    toastSkippedDuplicates: "{n} fichier(s) déjà dans la bibliothèque, non dupliqué(s) ✓",
     toastAddedToPlaylist: "Ajouté à {name} ✓",
     toastRemovedFromPlaylist: "Retiré de {name}",
     toastPlaylistCreated: "Playlist « {name} » créée ✓",
@@ -1074,6 +1076,7 @@ const I18N = {
     toastAddedFavorite: "Added to favorites ❤️",
     toastRemovedFavorite: "Removed from favorites",
     toastRemoved: "Removed ✓",
+    toastSkippedDuplicates: "{n} file(s) already in library, not duplicated ✓",
     toastAddedToPlaylist: "Added to {name} ✓",
     toastRemovedFromPlaylist: "Removed from {name}",
     toastPlaylistCreated: "Playlist \"{name}\" created ✓",
@@ -1146,6 +1149,7 @@ const I18N = {
     toastAddedFavorite: "Añadido a favoritos ❤️",
     toastRemovedFavorite: "Quitado de favoritos",
     toastRemoved: "Quitado ✓",
+    toastSkippedDuplicates: "{n} archivo(s) ya en la biblioteca, no duplicado(s) ✓",
     toastAddedToPlaylist: "Añadido a {name} ✓",
     toastRemovedFromPlaylist: "Quitado de {name}",
     toastPlaylistCreated: "Playlist \"{name}\" creada ✓",
@@ -1218,6 +1222,7 @@ const I18N = {
     toastAddedFavorite: "已添加到收藏 ❤️",
     toastRemovedFavorite: "已从收藏中移除",
     toastRemoved: "已移除 ✓",
+    toastSkippedDuplicates: "{n} 个文件已在资料库中，未重复添加 ✓",
     toastAddedToPlaylist: "已添加到 {name} ✓",
     toastRemovedFromPlaylist: "已从 {name} 移除",
     toastPlaylistCreated: "播放列表 \"{name}\" 已创建 ✓",
@@ -1290,6 +1295,7 @@ const I18N = {
     toastAddedFavorite: "पसंदीदा में जोड़ा गया ❤️",
     toastRemovedFavorite: "पसंदीदा से हटाया गया",
     toastRemoved: "हटाया गया ✓",
+    toastSkippedDuplicates: "{n} फ़ाइल पहले से लाइब्रेरी में हैं, डुप्लिकेट नहीं हुई ✓",
     toastAddedToPlaylist: "{name} में जोड़ा गया ✓",
     toastRemovedFromPlaylist: "{name} से हटाया गया",
     toastPlaylistCreated: "प्लेलिस्ट \"{name}\" बनाई गई ✓",
@@ -1362,6 +1368,7 @@ const I18N = {
     toastAddedFavorite: "Добавлено в избранное ❤️",
     toastRemovedFavorite: "Убрано из избранного",
     toastRemoved: "Убрано ✓",
+    toastSkippedDuplicates: "{n} файл(ов) уже в библиотеке, не дублировано ✓",
     toastAddedToPlaylist: "Добавлено в {name} ✓",
     toastRemovedFromPlaylist: "Убрано из {name}",
     toastPlaylistCreated: "Плейлист «{name}» создан ✓",
@@ -1478,6 +1485,76 @@ let menuTarget = null; // { item, index, listName } for the item action menu
 function getListByName(name) { return name ? (customPlaylists[name] || []) : playlist; }
 function getPlaybackList() { return getListByName(playbackListName); }
 
+// ═══════════════════════════════════════════════
+//  PÈSISTANS — IndexedDB (fichye + playlist rete sou telefòn)
+// ═══════════════════════════════════════════════
+let db = null;
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('PrismPlayerDB', 1);
+    req.onupgradeneeded = (e) => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('files')) d.createObjectStore('files', { keyPath: 'id' });
+      if (!d.objectStoreNames.contains('playlists')) d.createObjectStore('playlists', { keyPath: 'name' });
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e);
+  });
+}
+function dbGetAll(storeName) {
+  return new Promise((resolve, reject) => {
+    try {
+      const tx = db.transaction(storeName, 'readonly');
+      const req = tx.objectStore(storeName).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = (e) => reject(e);
+    } catch (e) { reject(e); }
+  });
+}
+function dbPut(storeName, value) {
+  return new Promise((resolve, reject) => {
+    try {
+      const tx = db.transaction(storeName, 'readwrite');
+      tx.objectStore(storeName).put(value);
+      tx.oncomplete = () => resolve();
+      tx.onerror = (e) => reject(e);
+    } catch (e) { reject(e); }
+  });
+}
+function dbDelete(storeName, key) {
+  return new Promise((resolve, reject) => {
+    try {
+      const tx = db.transaction(storeName, 'readwrite');
+      tx.objectStore(storeName).delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = (e) => reject(e);
+    } catch (e) { reject(e); }
+  });
+}
+function fileKey(f) { return `${f.name}_${f.size}_${f.lastModified}`; }
+function persistPlaylist(name) {
+  const items = customPlaylists[name] || [];
+  dbPut('playlists', { name, itemIds: items.map(it => it.id) }).catch(() => {});
+}
+
+async function loadFromDB() {
+  try {
+    db = await openDB();
+    const files = await dbGetAll('files');
+    playlist = files.map(f => ({
+      id: f.id, name: f.name, type: f.type, isAudio: f.isAudio, url: URL.createObjectURL(f.blob)
+    }));
+    const pls = await dbGetAll('playlists');
+    pls.forEach(p => {
+      const items = p.itemIds.map(id => playlist.find(it => it.id === id)).filter(Boolean);
+      customPlaylists[p.name] = items;
+    });
+    if (!customPlaylists[FAVORITES_NAME]) customPlaylists[FAVORITES_NAME] = [];
+    if (playlist.length) document.getElementById('drop-overlay').classList.add('hidden');
+    renderPlaylist();
+  } catch (e) { /* IndexedDB pa disponib — app la ap kontinye fonksyone san pèsistans */ }
+}
+
 // Frequency bands
 const BANDS = [
   { freq: 60, label: '60' }, { freq: 170, label: '170' },
@@ -1568,11 +1645,17 @@ vz.addEventListener('drop', e => {
 // ── PLAYLIST MANAGEMENT ──
 function addToPlaylist(files) {
   const isAudioType = f => /^audio\//.test(f.type) || /\.(mp3|wav|ogg|flac|aac|m4a|opus)$/i.test(f.name);
+  let dupCount = 0;
   files.forEach(f => {
-    playlist.push({ name: f.name.replace(/\.[^.]+$/, ''), url: URL.createObjectURL(f), type: f.type, isAudio: isAudioType(f) });
+    const id = fileKey(f);
+    if (playlist.some(it => it.id === id)) { dupCount++; return; }
+    const item = { id, name: f.name.replace(/\.[^.]+$/, ''), url: URL.createObjectURL(f), type: f.type, isAudio: isAudioType(f) };
+    playlist.push(item);
+    dbPut('files', { id, name: item.name, type: item.type, isAudio: item.isAudio, blob: f }).catch(() => {});
   });
   renderPlaylist();
   document.getElementById('drop-overlay').classList.add('hidden');
+  if (dupCount > 0) toast(t('toastSkippedDuplicates', { n: dupCount }));
 }
 
 function renderTabs() {
@@ -1626,6 +1709,7 @@ function renderMyPlaylistsList() {
     delBtn.onclick = (e) => {
       e.stopPropagation();
       delete customPlaylists[name];
+      dbDelete('playlists', name).catch(() => {});
       if (activeListName === name) activeListName = null;
       renderMyPlaylistsList();
       renderPlaylist();
@@ -1669,6 +1753,7 @@ function confirmNewPlaylistFromMyPlaylists() {
   if (!name) return;
   if (customPlaylists[name]) { toast(t('toastPlaylistExists')); return; }
   customPlaylists[name] = [];
+  persistPlaylist(name);
   input.value = '';
   renderMyPlaylistsList();
   toast(t('toastPlaylistCreated', { name }));
@@ -1676,6 +1761,7 @@ function confirmNewPlaylistFromMyPlaylists() {
 function deleteCurrentPlaylist() {
   if (!activeListName || activeListName === FAVORITES_NAME) return;
   delete customPlaylists[activeListName];
+  dbDelete('playlists', activeListName).catch(() => {});
   activeListName = null;
   renderPlaylist();
   toast(t('toastPlaylistDeleted'));
@@ -1738,6 +1824,7 @@ function actionPlayNext() {
   if (idx !== -1) { list.splice(idx, 1); if (idx < currentIdx) currentIdx--; }
   const insertAt = Math.min(currentIdx + 1, list.length);
   list.splice(insertAt, 0, menuTarget.item);
+  if (playbackListName) persistPlaylist(playbackListName);
   renderPlaylist();
   toast(t('toastAddedNext'));
 }
@@ -1748,6 +1835,7 @@ function actionAddQueue() {
   const idx = list.indexOf(menuTarget.item);
   if (idx !== -1) { list.splice(idx, 1); if (idx < currentIdx) currentIdx--; }
   list.push(menuTarget.item);
+  if (playbackListName) persistPlaylist(playbackListName);
   renderPlaylist();
   toast(t('toastAddedQueue'));
 }
@@ -1764,6 +1852,7 @@ function actionFavorite() {
   const idx = favs.indexOf(menuTarget.item);
   if (idx === -1) { favs.push(menuTarget.item); toast(t('toastAddedFavorite')); }
   else { favs.splice(idx, 1); toast(t('toastRemovedFavorite')); }
+  persistPlaylist(FAVORITES_NAME);
   document.getElementById('item-menu-fav-label').textContent = favs.includes(menuTarget.item) ? t('actRemoveFavorite') : t('actAddFavorite');
   renderPlaylist();
 }
@@ -1785,15 +1874,17 @@ function actionRemove() {
     const list = customPlaylists[listName];
     const idx = list.indexOf(item);
     if (idx !== -1) { list.splice(idx, 1); if (listName === playbackListName && idx < currentIdx) currentIdx--; }
+    persistPlaylist(listName);
   } else {
     const idx = playlist.indexOf(item);
     if (idx !== -1) playlist.splice(idx, 1);
     Object.keys(customPlaylists).forEach(name => {
       const l = customPlaylists[name];
       const i2 = l.indexOf(item);
-      if (i2 !== -1) l.splice(i2, 1);
+      if (i2 !== -1) { l.splice(i2, 1); persistPlaylist(name); }
     });
     try { URL.revokeObjectURL(item.url); } catch (e) {}
+    dbDelete('files', item.id).catch(() => {});
     stopIfCurrent(item);
   }
   renderPlaylist();
@@ -1829,6 +1920,7 @@ function toggleItemInPlaylist(name) {
   const idx = list.indexOf(menuTarget.item);
   if (idx === -1) { list.push(menuTarget.item); toast(t('toastAddedToPlaylist', { name })); }
   else { list.splice(idx, 1); toast(t('toastRemovedFromPlaylist', { name })); }
+  persistPlaylist(name);
   renderPickPlaylistList();
   renderPlaylist();
 }
@@ -1838,6 +1930,7 @@ function confirmNewPlaylistFromPicker() {
   if (!name || !menuTarget) return;
   if (!customPlaylists[name]) customPlaylists[name] = [];
   if (!customPlaylists[name].includes(menuTarget.item)) customPlaylists[name].push(menuTarget.item);
+  persistPlaylist(name);
   input.value = '';
   renderTabs();
   renderPickPlaylistList();
@@ -2160,6 +2253,7 @@ document.addEventListener('keydown', e => {
 // ── INIT LANGUAGE & LOOP UI ──
 updateLoopUI(false);
 applyLanguage();
+loadFromDB();
 </script>
 </body>
 </html>
