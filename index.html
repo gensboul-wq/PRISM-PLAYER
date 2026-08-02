@@ -43,15 +43,12 @@
 
   /* ── LAYOUT ── */
   #app {
-    position: fixed; top: 0; bottom: 0; left: 50%; z-index: 1;
-    width: 100%; max-width: 480px;
-    transform: translateX(-50%);
+    position: fixed; inset: 0; z-index: 1;
     display: grid;
     grid-template-rows: auto 1fr auto;
     grid-template-columns: 1fr;
     overflow: hidden;
     background: var(--abyss);
-    box-shadow: 0 0 60px rgba(0,0,0,0.6);
   }
 
   /* ── HEADER ── */
@@ -338,21 +335,25 @@
   }
 
   /* Playback buttons */
-  .ctrl-row {
+  .ctrl-row-main {
     display: flex; align-items: center; justify-content: center;
-    gap: clamp(6px, 2vw, 18px); flex-wrap: nowrap;
+    gap: clamp(14px, 6vw, 32px); flex-wrap: nowrap;
+  }
+  .ctrl-row-secondary {
+    display: flex; align-items: center; justify-content: center;
+    gap: clamp(8px, 3vw, 18px); flex-wrap: nowrap; margin-top: 4px;
   }
   .ctrl-btn {
     background: none; border: none; cursor: pointer;
-    color: var(--muted); font-size: 1rem;
-    transition: all 0.2s; padding: 5px; flex-shrink: 0;
+    color: var(--muted); font-size: 1.5rem;
+    transition: all 0.2s; padding: 6px; flex-shrink: 0;
   }
   .ctrl-btn:hover { color: var(--gold-light); transform: scale(1.1); }
   #play-btn {
-    width: 48px; height: 48px; flex-shrink: 0;
+    width: 62px; height: 62px; flex-shrink: 0;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--gold), var(--gold-light));
-    border: none; cursor: pointer; font-size: 1.2rem;
+    border: none; cursor: pointer; font-size: 1.6rem;
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 0 20px rgba(201,168,76,0.4);
     transition: all 0.2s; color: var(--abyss);
@@ -445,6 +446,20 @@
   }
   .mini-val { font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--white); min-width:34px; text-align:right; }
 
+  /* Toggle switch — Son Anvlopan (immersive/surround) */
+  .toggle-switch {
+    width: 40px; height: 22px; border-radius: 12px; flex-shrink: 0;
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+    position: relative; cursor: pointer; transition: background 0.2s, border-color 0.2s;
+  }
+  .toggle-switch.on { background: rgba(6,214,160,0.45); border-color: var(--teal); }
+  .toggle-knob {
+    width: 16px; height: 16px; border-radius: 50%; background: #fff;
+    position: absolute; top: 2px; left: 2px; transition: left 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+  .toggle-switch.on .toggle-knob { left: 20px; }
+
   /* Share popup */
   #share-popup { width: min(290px, 92vw); }
   .share-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -462,10 +477,10 @@
 
   /* ── POPUP ACTION BUTTONS (in ctrl-row) ── */
   .popup-btn {
-    width: 40px; height: 40px; border-radius: 8px; flex-shrink: 0;
+    width: 46px; height: 46px; border-radius: 10px; flex-shrink: 0;
     background: rgba(255,255,255,0.08);
     border: 1.5px solid rgba(255,255,255,0.25);
-    color: var(--white); font-size: 1.05rem;
+    color: var(--white); font-size: 1.25rem;
     cursor: pointer; display: flex; align-items: center; justify-content: center;
     transition: all 0.2s;
   }
@@ -478,8 +493,8 @@
 
   /* Skip buttons — pi gwo, bò play */
   .skip-btn {
-    font-size: 1.3rem !important;
-    padding: 4px 2px !important;
+    font-size: 1.9rem !important;
+    padding: 6px 4px !important;
     color: var(--white) !important;
     opacity: 0.85;
   }
@@ -558,7 +573,7 @@
   }
 
   /* Playlist popup */
-  #playlist-popup { width: min(340px, 92vw); }
+  #playlist-popup { width: min(520px, 96vw); }
   #playlist-list {
     display: flex; flex-direction: column; gap: 3px;
     overflow-y: auto; max-height: 42vh;
@@ -654,9 +669,11 @@
     .logo { font-size: 1rem; }
     .hbtn { font-size: 0.65rem; padding: 6px 10px; }
     #header { padding: 10px 14px; }
-    .ctrl-btn { font-size: 0.9rem; padding: 4px; }
-    .popup-btn { width: 34px; height: 34px; font-size: 0.9rem; }
-    #play-btn { width: 44px; height: 44px; font-size: 1.1rem; }
+  }
+  @media (max-width: 360px) {
+    .popup-btn { width: 40px; height: 40px; font-size: 1.1rem; }
+    #play-btn { width: 56px; height: 56px; font-size: 1.4rem; }
+    .skip-btn { font-size: 1.6rem !important; }
   }
 </style>
 </head>
@@ -760,6 +777,11 @@
         <input type="range" class="mini-slider" min="-12" max="12" step="1" value="0" oninput="setPitch(this.value)" id="pitch-slider">
         <span class="mini-val" id="pitch-val">±0st</span>
       </div>
+      <div class="slider-row" style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.08);padding-top:14px">
+        <label data-i18n="labelSurround">SON ANVLOPAN</label>
+        <div class="toggle-switch" id="surround-switch" onclick="toggleSurround()"><div class="toggle-knob"></div></div>
+        <span class="mini-val" id="surround-val">Off</span>
+      </div>
     </div>
 
     <!-- POPUP: PATAJE -->
@@ -781,18 +803,19 @@
       <span class="time-label" id="time-dur" style="text-align:right">0:00</span>
     </div>
 
-    <!-- CTRL ROW -->
-    <div class="ctrl-row">
-      <button class="popup-btn" id="bands-btn"    onclick="togglePanel('bands-popup','bands-btn')"       title="Bann Frekans">🎛</button>
-      <button class="popup-btn" id="vol-btn"      onclick="togglePanel('vol-popup','vol-btn')"           title="Volim & Vitès">🔊</button>
-
-      <!-- TRAS ANVAN → SKIP ← PLAY → SKIP → PWOCHEN TRAS -->
+    <!-- KONTWÒL PRENSIPAL — pi gwo bouton -->
+    <div class="ctrl-row-main">
       <button class="ctrl-btn skip-btn" onclick="prevTrack()" title="Tras Anvan">⏮</button>
       <button class="ctrl-btn skip-btn" onclick="skip(-10)" title="Retounen 10s">⏪</button>
       <button id="play-btn" onclick="togglePlay()">▶</button>
       <button class="ctrl-btn skip-btn" onclick="skip(10)" title="Avanse 10s">⏩</button>
       <button class="ctrl-btn skip-btn" onclick="nextTrack()" title="Pwochen Tras">⏭</button>
+    </div>
 
+    <!-- KONTWÒL SEGONDÈ -->
+    <div class="ctrl-row-secondary">
+      <button class="popup-btn" id="bands-btn"    onclick="togglePanel('bands-popup','bands-btn')"       title="Bann Frekans">🎛</button>
+      <button class="popup-btn" id="vol-btn"      onclick="togglePanel('vol-popup','vol-btn')"           title="Volim & Vitès">🔊</button>
       <button class="popup-btn" id="loop-btn"         onclick="cycleLoop()"                                    title="Repete">🔁</button>
       <button class="popup-btn" id="eq-btn"           onclick="togglePanel('eq-popup','eq-btn')"                title="Equalizè">≋</button>
       <button class="popup-btn" id="playlist-btn"     onclick="togglePanel('playlist-popup','playlist-btn')"    title="Playlist">☰</button>
@@ -888,6 +911,11 @@ const I18N = {
     btnResetBands: "↺ Remèt Nòmal",
     labelSpeed: "VITÈS",
     labelPitch: "TONALITE",
+    labelSurround: "SON ANVLOPAN",
+    surroundOn: "AN MACH",
+    surroundOff: "Off",
+    toastSurroundOn: "Son anvlopan aktive 🎧",
+    toastSurroundOff: "Son anvlopan dezaktive",
     btnCopyLink: "Kopye Lyen",
     plEmpty: "Pa gen fichye ankò",
     plCount: "{n} fichye",
@@ -961,6 +989,11 @@ const I18N = {
     btnResetBands: "↺ Réinitialiser",
     labelSpeed: "VITESSE",
     labelPitch: "TONALITÉ",
+    labelSurround: "SON IMMERSIF",
+    surroundOn: "ACTIVÉ",
+    surroundOff: "Off",
+    toastSurroundOn: "Son immersif activé 🎧",
+    toastSurroundOff: "Son immersif désactivé",
     btnCopyLink: "Copier le Lien",
     plEmpty: "Aucun fichier encore",
     plCount: "{n} fichiers",
@@ -1034,6 +1067,11 @@ const I18N = {
     btnResetBands: "↺ Reset",
     labelSpeed: "SPEED",
     labelPitch: "PITCH",
+    labelSurround: "IMMERSIVE SOUND",
+    surroundOn: "ON",
+    surroundOff: "Off",
+    toastSurroundOn: "Immersive sound on 🎧",
+    toastSurroundOff: "Immersive sound off",
     btnCopyLink: "Copy Link",
     plEmpty: "No files yet",
     plCount: "{n} files",
@@ -1107,6 +1145,11 @@ const I18N = {
     btnResetBands: "↺ Restablecer",
     labelSpeed: "VELOCIDAD",
     labelPitch: "TONO",
+    labelSurround: "SONIDO INMERSIVO",
+    surroundOn: "ACTIVADO",
+    surroundOff: "Off",
+    toastSurroundOn: "Sonido inmersivo activado 🎧",
+    toastSurroundOff: "Sonido inmersivo desactivado",
     btnCopyLink: "Copiar Enlace",
     plEmpty: "Sin archivos todavía",
     plCount: "{n} archivos",
@@ -1180,6 +1223,11 @@ const I18N = {
     btnResetBands: "↺ 重置",
     labelSpeed: "速度",
     labelPitch: "音调",
+    labelSurround: "沉浸音效",
+    surroundOn: "开启",
+    surroundOff: "关闭",
+    toastSurroundOn: "沉浸音效已开启 🎧",
+    toastSurroundOff: "沉浸音效已关闭",
     btnCopyLink: "复制链接",
     plEmpty: "暂无文件",
     plCount: "{n} 个文件",
@@ -1253,6 +1301,11 @@ const I18N = {
     btnResetBands: "↺ रीसेट करें",
     labelSpeed: "गति",
     labelPitch: "पिच",
+    labelSurround: "इमर्सिव साउंड",
+    surroundOn: "चालू",
+    surroundOff: "बंद",
+    toastSurroundOn: "इमर्सिव साउंड चालू 🎧",
+    toastSurroundOff: "इमर्सिव साउंड बंद",
     btnCopyLink: "लिंक कॉपी करें",
     plEmpty: "अभी तक कोई फ़ाइल नहीं",
     plCount: "{n} फ़ाइलें",
@@ -1326,6 +1379,11 @@ const I18N = {
     btnResetBands: "↺ Сбросить",
     labelSpeed: "СКОРОСТЬ",
     labelPitch: "ТОН",
+    labelSurround: "ОБЪЁМНЫЙ ЗВУК",
+    surroundOn: "ВКЛ",
+    surroundOff: "Выкл",
+    toastSurroundOn: "Объёмный звук включён 🎧",
+    toastSurroundOff: "Объёмный звук выключен",
     btnCopyLink: "Копировать ссылку",
     plEmpty: "Пока нет файлов",
     plCount: "{n} файлов",
@@ -1397,6 +1455,7 @@ function applyLanguage() {
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-placeholder')); });
 
   document.getElementById('pl-delete-btn').title = t('titleDeletePlaylist');
+  document.getElementById('surround-val').textContent = surroundOn ? t('surroundOn') : t('surroundOff');
 
   document.documentElement.lang = currentLang;
   document.getElementById('lang-btn').title = t('titleLang');
@@ -1991,13 +2050,32 @@ function initAudio() {
       if (filters[i]) filters[i].gain.value = +sl.value;
     });
 
-    // Chain: filters → gain → analyser → output
+    // Chain: filters → SON ANVLOPAN (stereo widener) → gain → analyser → output
     const firstFilter = filters[0];
     let fNode = firstFilter;
     for (let i = 1; i < filters.length; i++) { fNode.connect(filters[i]); fNode = filters[i]; }
-    fNode.connect(gainNode);
+
+    widenerSplitter = audioCtx.createChannelSplitter(2);
+    widenerMerger = audioCtx.createChannelMerger(2);
+    gLL = audioCtx.createGain(); gLL.gain.value = 1;
+    gRL = audioCtx.createGain(); gRL.gain.value = 0;
+    gRR = audioCtx.createGain(); gRR.gain.value = 1;
+    gLR = audioCtx.createGain(); gLR.gain.value = 0;
+
+    fNode.connect(widenerSplitter);
+    widenerSplitter.connect(gLL, 0);
+    widenerSplitter.connect(gLR, 0);
+    widenerSplitter.connect(gRR, 1);
+    widenerSplitter.connect(gRL, 1);
+    gLL.connect(widenerMerger, 0, 0);
+    gRL.connect(widenerMerger, 0, 0);
+    gRR.connect(widenerMerger, 0, 1);
+    gLR.connect(widenerMerger, 0, 1);
+
+    widenerMerger.connect(gainNode);
     gainNode.connect(analyser);
     analyser.connect(audioCtx.destination);
+    setSurroundWidth(surroundOn ? 0.35 : 0);
 
     // Source — kreye yon sèl fwa
     source = audioCtx.createMediaElementSource(video);
@@ -2011,6 +2089,25 @@ function initAudio() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     gainNode.gain.value = video.volume;
   }
+}
+
+// ── SON ANVLOPAN — stereo widener (pa Dolby, se yon efè DSP pwòp app la) ──
+let widenerSplitter, widenerMerger, gLL, gRL, gRR, gLR;
+let surroundOn = false;
+function setSurroundWidth(width) {
+  if (!gLL || !audioCtx) return;
+  const t0 = audioCtx.currentTime;
+  gLL.gain.setTargetAtTime(1 + width * 0.15, t0, 0.05);
+  gRR.gain.setTargetAtTime(1 + width * 0.15, t0, 0.05);
+  gRL.gain.setTargetAtTime(-width, t0, 0.05);
+  gLR.gain.setTargetAtTime(-width, t0, 0.05);
+}
+function toggleSurround() {
+  surroundOn = !surroundOn;
+  setSurroundWidth(surroundOn ? 0.35 : 0);
+  document.getElementById('surround-switch').classList.toggle('on', surroundOn);
+  document.getElementById('surround-val').textContent = surroundOn ? t('surroundOn') : t('surroundOff');
+  toast(surroundOn ? t('toastSurroundOn') : t('toastSurroundOff'));
 }
 
 function applyBandGain(i, db) { if (filters[i]) filters[i].gain.value = db; }
